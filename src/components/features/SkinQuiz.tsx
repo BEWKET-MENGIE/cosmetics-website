@@ -55,7 +55,7 @@ export const SkinQuiz: React.FC = () => {
           <div className="w-full bg-slate-100 h-2 rounded-full mb-8 overflow-hidden">
             <div
               className="bg-rose-500 h-full transition-all duration-500"
-              style={{ width: step === 1 ? '50%' : step === 2 ? '100%' : '100%' }}
+              style={{ width: step === 1 ? '50%' : '100%' }}
             />
           </div>
 
@@ -176,15 +176,10 @@ export const SkinQuiz: React.FC = () => {
                   variant="primary"
                   onClick={() => {
                     addToCart({
-                      id: recommendedProduct.id || 'quiz-1',
+                      id: recommendedProduct.id,
                       name: recommendedProduct.product,
-                      category: 'Skincare',
                       price: recommendedProduct.price,
-                      rating: 5.0,
-                      reviewsCount: 150,
                       image: recommendedProduct.image,
-                      description: 'Custom recommended product for your skin routine.',
-                      isBestSeller: true,
                     });
                     setAdded(true);
                   }}

@@ -1,14 +1,20 @@
-import React from 'react';
-import { NewsHero, ArticleGrid, Newsletter } from '@/components/news';
+// app/news/page.tsx
+import type { Metadata } from 'next';
+import { NewsHero } from '@/components/news/NewsHero';
+import { JournalFeed } from '@/components/news/JournalFeed';
+import { Newsletter } from '@/components/news/Newsletter';
+
+export const metadata: Metadata = {
+  title: 'Journal | LUMIÈRE',
+  description: 'Skincare tips, ingredient guides and beauty routines from the Lumière team.',
+};
 
 export default function NewsPage() {
   return (
-    <main className="min-h-screen bg-slate-50 py-16 pt-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <NewsHero />
-        <ArticleGrid />
-        <Newsletter />
-      </div>
-    </main>
+    <>
+      <NewsHero />
+      <JournalFeed />
+      <Newsletter />
+    </>
   );
 }

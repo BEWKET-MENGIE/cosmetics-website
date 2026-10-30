@@ -1,13 +1,22 @@
-import React from 'react';
-import { ChooseHero, ChooseBenefits } from '@/components/choose';
+// app/choose/page.tsx
+import type { Metadata } from 'next';
+import { ChooseHero } from '@/components/choose/ChooseHero';
+import { ChooseBenefits } from '@/components/choose/ChooseBenefits';
+import { ChooseCta } from '@/components/choose/ChooseCta';
+
+export const metadata: Metadata = {
+  title: 'Why Choose Us | LUMIÈRE',
+  description: 'Organic, clinically tested, cruelty-free skincare and cosmetics.',
+};
 
 export default function ChoosePage() {
   return (
-    <main className="min-h-screen bg-slate-50 py-16 pt-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="bg-white py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ChooseHero />
         <ChooseBenefits />
+        <ChooseCta />
       </div>
-    </main>
+    </section>
   );
 }
