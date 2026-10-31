@@ -1,16 +1,19 @@
-// app/wishlist/page.tsx
+// app/wishlist/page.tsx  (replace the whole file)
 import type { Metadata } from 'next';
-import { Heart } from 'lucide-react';
-import { ComingSoon } from '@/components/ui/ComingSoon';
+import { WishlistView } from '@/components/wishlist/WishlistView';
 
-export const metadata: Metadata = { title: 'Wishlist | LUMIÈRE' };
+export const metadata: Metadata = {
+  title: 'Wishlist | LUMIÈRE',
+  robots: { index: false },
+};
 
 export default function WishlistPage() {
   return (
-    <ComingSoon
-      Icon={Heart}
-      title="Your wishlist is coming soon"
-      description="Saving favorites across visits is on its way. Meanwhile, you can add products straight to your shopping bag."
-    />
+    <section className="min-h-[60vh] bg-slate-50 py-14">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <h1 className="mb-8 font-serif text-3xl font-bold text-slate-900 sm:text-4xl">My Wishlist</h1>
+        <WishlistView />
+      </div>
+    </section>
   );
 }

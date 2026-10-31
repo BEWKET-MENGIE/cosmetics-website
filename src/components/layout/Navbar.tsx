@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ChevronDown, Heart, Leaf, Search, ShoppingBag, User, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { SITE } from '@/lib/site';
 
 const SHOP_MENU = [
@@ -20,35 +21,32 @@ const LINK_BASE =
 const ICON_BUTTON =
   'relative flex cursor-pointer items-center gap-2 rounded-full p-2 text-sm text-neutral-100 transition-colors hover:text-emerald-400 focus-visible:outline-2 focus-visible:outline-emerald-400';
 
+const COUNT_BADGE =
+  'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-neutral-950';
+
 interface NavLinkItemProps {
   href: string;
   active: boolean;
   children: React.ReactNode;
 }
 
-const NavLinkItem: React.FC<NavLinkItemProps> = ({ href, active, children }) => {
-  const className = `${LINK_BASE} ${active ? 'text-emerald-400' : 'text-white hover:text-emerald-400'}`;
+const NavLinkItem: React.FC<NavLinkItemProps> = ({ href, active, children }) => (
+  <Link
+    href={href}
+    aria-current={active ? 'page' : undefined}
+    className={`${LINK_BASE} ${active ? 'text-emerald-400' : 'text-white hover:text-emerald-400'}`}
+  >
+    {children}
+  </Link>
+);
 
-  // "#contact" scrolls to the footer, which exists on every page
-  if (href.startsWith('#')) {
-    return (
-      <a href={href} className={className}>
-        {children}
-      </a>
-    );
-  }
-
-  return (
-    <Link href={href} aria-current={active ? 'page' : undefined} className={className}>
-      {children}
-    </Link>
-  );
-};
+const formatCount = (count: number) => (count > 99 ? '99+' : count);
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems, toggleCart } = useCart();
+  const { count: wishlistCount } = useWishlist();
 
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -113,7 +111,6 @@ export const Navbar: React.FC = () => {
     e.preventDefault();
     const term = query.trim();
     if (!term) return;
-    // TODO: make ShopCatalog read the `q` search param (useSearchParams) and filter by it
     router.push(`/shop?q=${encodeURIComponent(term)}`);
     setIsSearchOpen(false);
   };
@@ -123,7 +120,7 @@ export const Navbar: React.FC = () => {
     <header className="relative z-40 border-b border-white/10 bg-neutral-950/95 text-neutral-100 backdrop-blur-md lg:sticky lg:top-0">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col divide-y divide-white/10 lg:h-20 lg:flex-row lg:items-center lg:gap-8 lg:divide-y-0">
-          {/* Row 1: brand + badge */}
+          {/* Row 1: brand */}
           <div className="flex items-center justify-between py-4 lg:justify-start lg:gap-4 lg:py-0">
             <Link href="/" className="group flex items-center gap-3">
               <span
@@ -139,12 +136,6 @@ export const Navbar: React.FC = () => {
                 </span>
               </span>
             </Link>
-
-            {SITE.badge && (
-              <span className="rounded-full border border-emerald-500/40 bg-emerald-950 px-3 py-1 text-xs font-medium text-emerald-400">
-                {SITE.badge}
-              </span>
-            )}
           </div>
 
           {/* Row 2: links */}
@@ -206,7 +197,7 @@ export const Navbar: React.FC = () => {
             <NavLinkItem href="/news" active={isActive('/news')}>
               Blog
             </NavLinkItem>
-            <NavLinkItem href="#contact" active={false}>
+            <NavLinkItem href="/contact" active={isActive('/contact')}>
               Contact
             </NavLinkItem>
           </nav>
@@ -236,11 +227,16 @@ export const Navbar: React.FC = () => {
 
             <Link
               href="/wishlist"
-              aria-label="Wishlist"
+              aria-label={`Wishlist, ${wishlistCount} ${wishlistCount === 1 ? 'item' : 'items'}`}
               aria-current={isActive('/wishlist') ? 'page' : undefined}
               className={ICON_BUTTON}
             >
               <Heart size={18} aria-hidden="true" />
+              {wishlistCount > 0 && (
+                <span aria-hidden="true" className={COUNT_BADGE}>
+                  {formatCount(wishlistCount)}
+                </span>
+              )}
             </Link>
 
             <button
@@ -252,11 +248,8 @@ export const Navbar: React.FC = () => {
             >
               <ShoppingBag size={18} aria-hidden="true" />
               {totalItems > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-neutral-950"
-                >
-                  {totalItems > 99 ? '99+' : totalItems}
+                <span aria-hidden="true" className={COUNT_BADGE}>
+                  {formatCount(totalItems)}
                 </span>
               )}
             </button>

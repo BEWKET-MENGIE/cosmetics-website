@@ -13,6 +13,7 @@ const QUICK_LINKS = [
   { href: '/choose', label: 'Why Choose Us' },
   { href: '/news', label: 'Journal' },
   { href: '/testimonial', label: 'Reviews' },
+  { href: '/contact', label: 'Contact Us' },
 ];
 
 const SUPPORT_LINKS = LEGAL_PAGES.map((page) => ({
@@ -28,8 +29,7 @@ export const Footer: React.FC = () => {
   const { email, phone, phoneHref, address } = SITE.contact;
 
   return (
-    // id="contact" is the target of the "Contact" link in the navbar
-    <footer id="contact" className="border-t border-white/10 bg-neutral-950 pb-8 pt-16 text-neutral-300">
+    <footer className="border-t border-white/10 bg-neutral-950 pb-8 pt-16 text-neutral-300">
       <div className="mx-auto mb-12 grid max-w-7xl grid-cols-1 gap-10 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
         {/* Brand */}
         <div className="space-y-5">
@@ -66,7 +66,7 @@ export const Footer: React.FC = () => {
           </ul>
         </nav>
 
-        {/* Contact */}
+        {/* Contact details */}
         <div>
           <h3 className={HEADING_CLASS}>Get in Touch</h3>
           <ul className="space-y-3 text-sm">

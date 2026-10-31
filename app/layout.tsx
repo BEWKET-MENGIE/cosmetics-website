@@ -3,9 +3,11 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
+import { WishlistProvider } from '@/context/WishlistContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { SITE_URL } from '@/lib/site';
 
 const sans = Inter({
   subsets: ['latin'],
@@ -20,7 +22,6 @@ const serif = Playfair_Display({
   display: 'swap',
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 const SITE_TITLE = 'LUMIÈRE | Natural Cosmetics';
 const SITE_DESCRIPTION = 'Natural, science-backed cosmetics and skincare for radiant skin.';
 
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#f43f5e', // rose-500: colors the browser bar on phones
+  themeColor: '#f43f5e',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -51,7 +52,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${sans.variable} ${serif.variable} scroll-smooth`}
     >
       <body className="flex min-h-screen flex-col bg-white font-sans text-slate-900 antialiased">
-        {/* Keyboard users: first Tab press reveals this link */}
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-rose-500 focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
@@ -60,12 +60,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
 
         <CartProvider>
-          <Navbar />
-          <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
-            {children}
-          </main>
-          <Footer />
-          <CartDrawer />
+          <WishlistProvider>
+            <Navbar />
+            <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
+              {children}
+            </main>
+            <Footer />
+            <CartDrawer />
+          </WishlistProvider>
         </CartProvider>
       </body>
     </html>

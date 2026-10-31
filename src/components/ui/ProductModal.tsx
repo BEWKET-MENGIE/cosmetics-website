@@ -1,175 +1,154 @@
+// src/components/ui/ProductModal.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { X, Star, ShoppingBag, ShieldCheck, Leaf, Sparkles, Heart } from 'lucide-react';
-import type { Product } from '../../types';
-import { useCart } from '../../context/CartContext';
-import { Button } from './Button';
+import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Minus, Plus, ShoppingBag, Star, X } from 'lucide-react';
+import type { Product } from '@/types';
+import { useCart } from '@/context/CartContext';
+import { formatETB } from '@/lib/format';
+import { productHref } from '@/lib/products';
 
 interface ProductModalProps {
-  product: Product | null;
+  product: Product;
   onClose: () => void;
 }
 
+const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])';
+
 export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
-  const [liked, setLiked] = useState(false);
-  const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
+  const [quantity, setQuantity] = useState(1);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
 
-  if (!product) return null;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
-  const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product);
-    }
+  // Escape closes, Tab stays inside, page behind doesn't scroll, focus returns on close
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+
+      const items = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, []);
+
+  const handleAdd = () => {
+    addToCart(product, quantity); // also opens the cart drawer
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-6">
+      <div onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-xs" aria-hidden="true" />
 
-      {/* Modal Container */}
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden z-10 my-8">
-        {/* Close Button */}
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quick-view-title"
+        className="relative grid max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:grid-cols-2 sm:rounded-3xl"
+      >
         <button
+          ref={closeRef}
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 bg-white/80 backdrop-blur-md rounded-full text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shadow-sm"
-          aria-label="Close modal"
+          aria-label="Close quick view"
+          className="absolute right-4 top-4 z-10 cursor-pointer rounded-full bg-white/90 p-2 text-slate-600 shadow transition-colors hover:text-slate-900"
         >
-          <X size={20} />
+          <X size={18} aria-hidden="true" />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2">
-          {/* Image Column */}
-          <div className="relative h-72 md:h-full bg-slate-100 min-h-[320px]">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover object-center"
-            />
-            {/* Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-1.5">
-              {product.isBestSeller && (
-                <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                  Best Seller
-                </span>
-              )}
-              {product.isNew && (
-                <span className="bg-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                  New Arrival
-                </span>
-              )}
-            </div>
+        <div className="aspect-square bg-slate-100 sm:aspect-auto sm:min-h-[420px]">
+          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+        </div>
+
+        <div className="flex flex-col p-6 sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-rose-600">{product.category}</p>
+          <h2 id="quick-view-title" className="mt-2 font-serif text-2xl font-bold leading-snug text-slate-900">
+            {product.name}
+          </h2>
+
+          <div className="mt-3 flex items-center gap-1.5 text-sm">
+            <Star size={16} className="fill-amber-400 text-amber-400" aria-hidden="true" />
+            <span className="font-semibold text-slate-800">{product.rating.toFixed(1)}</span>
+            <span className="text-slate-500">({product.reviewsCount} reviews)</span>
           </div>
 
-          {/* Details Column */}
-          <div className="p-6 md:p-8 flex flex-col justify-between space-y-6">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-500">
-                {product.category}
-              </span>
-              <h2 className="text-2xl font-serif font-bold text-slate-900 mt-1">
-                {product.name}
-              </h2>
+          <p className="mt-4 text-2xl font-extrabold text-slate-900">{formatETB(product.price)}</p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">{product.description}</p>
 
-              {/* Rating */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex text-amber-400">
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <Star
-                      key={i}
-                      size={16}
-                      className={i < Math.floor(product.rating) ? 'fill-amber-400' : 'text-slate-200'}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-bold text-slate-700">{product.rating}</span>
-                <span className="text-xs text-slate-400">({product.reviewsCount} verified reviews)</span>
-              </div>
-
-              {/* Price */}
-              <p className="text-2xl font-extrabold text-slate-900 mt-4">
-                {product.price.toLocaleString('en-US')} ETB
-              </p>
-
-              {/* Description */}
-              <p className="text-xs md:text-sm text-slate-600 leading-relaxed mt-3">
-                {product.description}
-              </p>
-
-              {/* Key Highlights */}
-              <div className="grid grid-cols-2 gap-2 mt-5 pt-4 border-t border-slate-100">
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <Leaf size={16} className="text-emerald-500 shrink-0" />
-                  <span>100% Organic</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <ShieldCheck size={16} className="text-rose-500 shrink-0" />
-                  <span>Dermatologist Tested</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <Sparkles size={16} className="text-amber-500 shrink-0" />
-                  <span>Cruelty-Free</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <Heart size={16} className="text-rose-400 shrink-0" />
-                  <span>For All Skin Types</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-4">
-                {/* Quantity Control */}
-                <div className="flex items-center border border-slate-200 rounded-full bg-slate-50 px-3 py-1">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="text-slate-500 hover:text-slate-800 px-2 py-1 font-bold cursor-pointer"
-                  >
-                    -
-                  </button>
-                  <span className="px-3 text-sm font-bold text-slate-800">{quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="text-slate-500 hover:text-slate-800 px-2 py-1 font-bold cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
-
-                {/* Wishlist Button */}
+          <div className="mt-auto space-y-3 pt-6">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center rounded-xl border border-slate-200">
                 <button
                   type="button"
-                  onClick={() => setLiked(!liked)}
-                  className={`p-3 rounded-full border transition-colors cursor-pointer ${
-                    liked
-                      ? 'border-rose-500 bg-rose-50 text-rose-500'
-                      : 'border-slate-200 text-slate-500 hover:text-rose-500'
-                  }`}
-                  aria-label="Save to Wishlist"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                  aria-label="Decrease quantity"
+                  className="cursor-pointer rounded-l-xl p-3 text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <Heart size={20} className={liked ? 'fill-rose-500' : ''} />
+                  <Minus size={16} aria-hidden="true" />
+                </button>
+                <span className="min-w-10 text-center text-sm font-bold" aria-live="polite">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.min(99, q + 1))}
+                  aria-label="Increase quantity"
+                  className="cursor-pointer rounded-r-xl p-3 text-slate-600 transition-colors hover:bg-slate-100"
+                >
+                  <Plus size={16} aria-hidden="true" />
                 </button>
               </div>
 
-              <Button
-                variant="primary"
-                onClick={handleAddToCart}
-                className="w-full gap-2 py-3.5 shadow-lg shadow-rose-200"
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-rose-600"
               >
-                <ShoppingBag size={18} />
-                Add to Shopping Bag
-              </Button>
+                <ShoppingBag size={16} aria-hidden="true" /> Add to Bag
+              </button>
             </div>
+
+            <Link
+              href={productHref(product)}
+              onClick={onClose}
+              className="block text-center text-sm font-semibold text-slate-600 underline-offset-4 transition-colors hover:text-rose-600 hover:underline"
+            >
+              View full details
+            </Link>
           </div>
         </div>
       </div>
