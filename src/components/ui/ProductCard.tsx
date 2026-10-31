@@ -2,10 +2,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Star, ShoppingBag, Heart, Eye } from 'lucide-react';
 import type { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { formatETB } from '@/lib/format';
+import { productHref } from '@/lib/products';
 import { ProductModal } from './ProductModal';
 
 interface ProductCardProps {
@@ -13,12 +16,10 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const [liked, setLiked] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { addToCart } = useCart();
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const { has, toggle } = useWishlist();
+  const liked = has(product.id);
 
   return (
     <>
@@ -40,18 +41,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Wishlist */}
         <button
           type="button"
-          onClick={() => setLiked((v) => !v)}
+          onClick={() => toggle(product.id)}
           aria-pressed={liked}
-          aria-label={liked ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-label={liked ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
           className="absolute right-3 top-3 z-10 cursor-pointer rounded-full bg-white/80 p-2 text-slate-600 shadow-sm backdrop-blur-md transition-colors hover:text-rose-500"
         >
           <Heart size={18} className={liked ? 'fill-rose-500 text-rose-500' : ''} />
         </button>
 
-        {/* Image = Quick View trigger (a real button, so keyboard and screen readers work) */}
+        {/* Image = quick view trigger */}
         <button
           type="button"
-          onClick={openModal}
+          onClick={() => setIsModalOpen(true)}
           aria-haspopup="dialog"
           aria-label={`Quick view: ${product.name}`}
           className="group/quick relative block h-64 w-full cursor-pointer overflow-hidden bg-slate-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rose-500"
@@ -75,21 +76,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Details */}
         <div className="flex-1 p-5">
           <span className="text-xs font-semibold text-rose-500">{product.category}</span>
-
-          <h3 className="mt-1 text-base font-bold text-slate-800 transition-colors group-hover:text-rose-600">
-            <button
-              type="button"
-              onClick={openModal}
-              aria-haspopup="dialog"
-              className="line-clamp-1 w-full cursor-pointer text-left"
+          <h3 className="mt-1 line-clamp-1 text-base font-bold text-slate-800 transition-colors group-hover:text-rose-600">
+            <Link
+              href={productHref(product)}
+              className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
             >
               {product.name}
-            </button>
+            </Link>
           </h3>
-
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">
-            {product.description}
-          </p>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">{product.description}</p>
 
           <div className="mt-3 flex items-center gap-1">
             <Star size={14} className="fill-amber-400 text-amber-400" aria-hidden="true" />
@@ -117,7 +112,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
       </article>
 
-      {isModalOpen && <ProductModal product={product} onClose={closeModal} />}
+      {isModalOpen && <ProductModal product={product} onClose={() => setIsModalOpen(false)} />}
     </>
   );
 };

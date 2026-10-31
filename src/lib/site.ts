@@ -42,3 +42,6 @@ export const SITE: SiteConfig = {
     { platform: 'x', label: 'X (Twitter)', href: 'https://x.com' },
   ],
 };
+
+/** Your public web address. Set NEXT_PUBLIC_SITE_URL in .env.local once you have a domain. */
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';

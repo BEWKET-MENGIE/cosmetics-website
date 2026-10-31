@@ -1,16 +1,19 @@
-// app/account/page.tsx
+// app/account/page.tsx  (replace the whole file)
 import type { Metadata } from 'next';
-import { User } from 'lucide-react';
-import { ComingSoon } from '@/components/ui/ComingSoon';
+import { AccountView } from '@/components/account/AccountView';
 
-export const metadata: Metadata = { title: 'My Account | LUMIÈRE' };
+export const metadata: Metadata = {
+  title: 'My Account | LUMIÈRE',
+  robots: { index: false },
+};
 
 export default function AccountPage() {
   return (
-    <ComingSoon
-      Icon={User}
-      title="Accounts are coming soon"
-      description="Soon you will be able to sign in, track your orders and save your details. For now, you can shop as a guest."
-    />
+    <section className="min-h-[60vh] bg-slate-50 py-14">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <h1 className="mb-8 font-serif text-3xl font-bold text-slate-900 sm:text-4xl">My Account</h1>
+        <AccountView />
+      </div>
+    </section>
   );
 }

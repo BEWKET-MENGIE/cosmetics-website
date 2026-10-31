@@ -1,105 +1,150 @@
+// src/components/Shop/ShopCatalog.tsx
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { FEATURED_PRODUCTS } from '@/data/products';
+import { SHOP_CATEGORIES } from '@/data/categories';
+import { filterAndSortProducts, isSortKey } from '@/lib/shop';
+import type { SortKey } from '@/lib/shop';
 import { ProductCard } from '@/components/ui/ProductCard';
+import { ShopToolbar } from './ShopToolbar';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 export const ShopCatalog: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('featured');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const categories = ['All', 'Skincare', 'Lip Care', 'Eye & Face Makeup', 'Natural Oils'];
+  // ---- Filters live in the URL: /shop?category=lip-care&sort=price-low&q=balm ----
+  const urlQuery = searchParams.get('q') ?? '';
+  const category = SHOP_CATEGORIES.find((c) => c.slug === searchParams.get('category'));
+  const activeCategory = category?.slug ?? '';
+  const sortParam = searchParams.get('sort');
+  const sort: SortKey = isSortKey(sortParam) ? sortParam : 'featured';
 
-  const filteredProducts = useMemo(() => {
-    return FEATURED_PRODUCTS.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === 'All' || product.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    }).sort((a, b) => {
-      if (sortBy === 'price-low') return a.price - b.price;
-      if (sortBy === 'price-high') return b.price - a.price;
-      if (sortBy === 'rating') return b.rating - a.rating;
-      return 0;
-    });
-  }, [searchQuery, selectedCategory, sortBy]);
+  const updateParams = useCallback(
+    (changes: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(changes)) {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      }
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  // ---- Search: filters instantly, writes to the URL after a short pause ----
+  const [searchText, setSearchText] = useState(urlQuery);
+  const lastWrittenQuery = useRef(urlQuery);
+
+  // The URL changed from outside (e.g. the navbar search): update the input
+  useEffect(() => {
+    if (urlQuery !== lastWrittenQuery.current) {
+      lastWrittenQuery.current = urlQuery;
+      setSearchText(urlQuery);
+    }
+  }, [urlQuery]);
+
+  // The user typed: update the URL after they stop typing
+  useEffect(() => {
+    const term = searchText.trim();
+    if (term === urlQuery) return;
+
+    const timer = window.setTimeout(() => {
+      lastWrittenQuery.current = term;
+      updateParams({ q: term || null });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchText, urlQuery, updateParams]);
+
+  // ---- Results ----
+  const counts = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const product of FEATURED_PRODUCTS) {
+      result[product.category] = (result[product.category] ?? 0) + 1;
+    }
+    return result;
+  }, []);
+
+  const products = useMemo(
+    () =>
+      filterAndSortProducts(FEATURED_PRODUCTS, {
+        query: searchText,
+        category: category?.productCategory,
+        sort,
+      }),
+    [searchText, category, sort],
+  );
+
+  const hasFilters = searchText.trim() !== '' || activeCategory !== '' || sort !== 'featured';
+
+  const clearFilters = () => {
+    lastWrittenQuery.current = '';
+    setSearchText('');
+    updateParams({ q: null, category: null, sort: null });
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-16 pt-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="inline-flex items-center gap-1.5 bg-rose-100 text-rose-700 text-xs font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-3">
-            <Sparkles size={14} /> Full Collection
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-slate-900">
-            Explore Luxury Cosmetics
-          </h1>
-          <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-            Discover our complete range of organic skincare, nourishing lip treatments, and radiant makeup essentials.
-          </p>
-        </div>
+    <div>
+      <ShopToolbar
+        query={searchText}
+        onQueryChange={setSearchText}
+        activeCategory={activeCategory}
+        onCategoryChange={(slug) => updateParams({ category: slug || null })}
+        sort={sort}
+        onSortChange={(next) => updateParams({ sort: next === 'featured' ? null : next })}
+        counts={counts}
+        total={FEATURED_PRODUCTS.length}
+      />
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 mb-8 flex flex-col lg:flex-row items-center justify-between gap-4">
-          <div className="relative w-full lg:w-96">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-2 focus:outline-rose-500 bg-slate-50/50"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
-            <SlidersHorizontal size={16} className="text-slate-500 shrink-0" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-slate-50/50 text-slate-700 focus:outline-2 focus:outline-rose-500 cursor-pointer"
-            >
-              <option value="featured">Sort by: Featured</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
-            </select>
-          </div>
-        </div>
-
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/80">
-            <p className="text-lg font-serif font-bold text-slate-800">No products found</p>
-            <p className="text-sm text-slate-500 mt-1">Try adjusting your search or category filters.</p>
-          </div>
+      <div className="mb-6 flex items-center justify-between px-1 text-sm text-slate-600">
+        <p role="status" aria-live="polite">
+          Showing <strong className="text-slate-900">{products.length}</strong>{' '}
+          {products.length === 1 ? 'product' : 'products'}
+          {category && (
+            <>
+              {' '}in <strong className="text-slate-900">{category.productCategory}</strong>
+            </>
+          )}
+        </p>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="cursor-pointer font-semibold text-rose-600 underline-offset-4 transition-colors hover:text-rose-700 hover:underline"
+          >
+            Clear all
+          </button>
         )}
       </div>
+
+      {products.length > 0 ? (
+        <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {products.map((product) => (
+            <li key={product.id} className="flex">
+              <div className="w-full">
+                <ProductCard product={product} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-2xl border border-slate-200/80 bg-white py-20 text-center">
+          <p className="font-serif text-lg font-bold text-slate-800">No products found</p>
+          <p className="mt-1 text-sm text-slate-500">Try adjusting your search or category filters.</p>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="mt-6 cursor-pointer rounded-full bg-rose-500 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rose-600"
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
     </div>
   );
 };
