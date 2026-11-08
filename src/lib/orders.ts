@@ -1,4 +1,4 @@
-// src/lib/orders.ts  (replace the whole file)
+// src/lib/orders.ts
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '@/lib/constants';
 
 export type PaymentMethod = 'cod' | 'telebirr' | 'cbe' | 'chapa';
@@ -41,6 +41,10 @@ export interface Order {
   customer: { fullName: string; phone: string; email: string };
   address: { city: string; details: string; notes: string };
   paymentMethod: PaymentMethod;
+  /** Set by the server: pending | paid | shipped | delivered | cancelled */
+  status?: string;
+  /** Set by the server: unpaid | paid | failed | refunded */
+  paymentStatus?: string;
 }
 
 export const calcShipping = (subtotal: number): number =>

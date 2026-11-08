@@ -1,7 +1,8 @@
 // app/api/orders/route.ts
 import { db } from '@/lib/db';
 import { calcShipping, createOrderId } from '@/lib/orders';
-import type { Order } from '@/lib/orders';
+import { auth } from '@/lib/auth';
+import { toClientOrder } from '@/server/orders';
 import { fieldErrors, getClientIp, json, readJson } from '@/server/http';
 import { rateLimit } from '@/server/rateLimit';
 import { normalizePhone, orderSchema } from '@/server/schemas';
@@ -66,6 +67,9 @@ export async function POST(request: Request) {
   const total = subtotal + shipping;
   const email = input.customer.email.toLowerCase();
 
+  const session = await auth.api.getSession({ headers: request.headers });
+  const userId = session?.user.id ?? null;
+
   try {
     // One all-or-nothing step: take the stock off, then save the order.
     // If anyone bought the last item a moment ago, this rolls back.
@@ -81,6 +85,7 @@ export async function POST(request: Request) {
       return tx.order.create({
         data: {
           number: createOrderId(),
+          userId,
           status: 'pending',
           paymentMethod: input.paymentMethod,
           paymentStatus: 'unpaid',
@@ -107,26 +112,7 @@ export async function POST(request: Request) {
       });
     });
 
-    // Same shape the confirmation page and account page already use
-    const order: Order = {
-      id: created.number,
-      placedAt: created.createdAt.toISOString(),
-      items: created.items.map((item) => ({
-        id: item.productId ?? item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-      })),
-      subtotal: created.subtotal,
-      shipping: created.shipping,
-      total: created.total,
-      customer: { fullName: created.fullName, phone: created.phone, email: created.email ?? '' },
-      address: { city: created.city, details: created.address, notes: created.notes ?? '' },
-      paymentMethod: input.paymentMethod,
-    };
-
-    return json({ order }, 201);
+    return json({ order: toClientOrder(created) }, 201);
   } catch (error) {
     if (error instanceof StockError) {
       return json(
