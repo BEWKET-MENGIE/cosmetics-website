@@ -1,21 +1,123 @@
-/* app/globals.css */
+
 @import "tailwindcss";
 
-/* Fonts: the variables are created by next/font in app/layout.tsx (Inter + Playfair Display) */
+/* ==========================================
+   LUMIÈRE NATURAL SKINCARE
+   GLOBAL DESIGN SYSTEM
+========================================== */
+
+/* ==========================================
+   1. TYPOGRAPHY
+========================================== */
+
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
 }
 
-/* Hero fade-in animation (used as `animate-fade-up`) */
+/* ==========================================
+   2. BRAND COLORS
+========================================== */
+
+:root {
+  --color-brand-primary: #10251D;
+  --color-brand-secondary: #18352B;
+  --color-brand-dark: #071C15;
+
+  --color-brand-rose: #F34D78;
+  --color-brand-rose-light: #F48CA9;
+
+  --color-brand-cream: #F8F2E9;
+  --color-brand-gold: #B99A65;
+
+  --color-brand-text: #18352B;
+  --color-brand-muted: #647067;
+
+  --background: #F8F2E9;
+  --foreground: #18352B;
+
+  color-scheme: light;
+}
+
+/* ==========================================
+   3. GLOBAL RESET
+========================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* ==========================================
+   4. SELECTION
+========================================== */
+
+::selection {
+  background: var(--color-brand-rose);
+  color: #ffffff;
+}
+
+/* ==========================================
+   5. ACCESSIBILITY
+========================================== */
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-rose);
+  outline-offset: 4px;
+}
+
+/* ==========================================
+   6. HERO FADE ANIMATION
+========================================== */
+
 @theme {
-  --animate-fade-up: fade-up 0.5s ease-out both;
+  --animate-fade-up: fade-up 0.6s ease-out both;
 
   @keyframes fade-up {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(18px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -23,18 +125,29 @@
   }
 }
 
-/* Hero scrolling text strip: plain CSS, so it never depends on Tailwind's theme */
+/* ==========================================
+   7. HERO MARQUEE
+========================================== */
+
 @keyframes hero-marquee {
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(-50%);
   }
 }
 
+.hero-marquee {
+  position: relative;
+  overflow: hidden;
+}
+
 .hero-marquee-track {
-  animation: hero-marquee 40s linear infinite; /* bigger number = slower */
+  display: flex;
+  width: max-content;
+  animation: hero-marquee 40s linear infinite;
   will-change: transform;
 }
 
@@ -42,10 +155,98 @@
   animation-play-state: paused;
 }
 
-/* Accessibility: people who turned animations off get a still strip.
-   Delete this block if you want the strip to always move (not recommended). */
+/* ==========================================
+   8. SMOOTH IMAGE TRANSITIONS
+========================================== */
+
+.hero-image {
+  transition:
+    opacity 1.2s ease-in-out,
+    transform 8s ease-out;
+}
+
+/* ==========================================
+   9. PREMIUM CARD TRANSITIONS
+========================================== */
+
+.brand-card {
+  transition:
+    transform 0.4s ease,
+    border-color 0.4s ease,
+    background-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+
+.brand-card:hover {
+  transform: translateY(-5px);
+}
+
+/* ==========================================
+   10. SCROLLBAR
+========================================== */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #B99A65 #F8F2E9;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F8F2E9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B99A65;
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #18352B;
+}
+
+/* ==========================================
+   11. REDUCED MOTION
+========================================== */
+
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .hero-marquee-track {
-    animation: none;
+    animation: none !important;
+    transform: none;
+    will-change: auto;
   }
 }
+
+/* ==========================================
+   12. RESPONSIVE TYPOGRAPHY
+========================================== */
+
+@media (max-width: 640px) {
+  html {
+    scroll-padding-top: 72px;
+  }
+
+  .hero-marquee-track {
+    animation-duration: 35s;
+  }
+}
+
+/* ==========================================
+   END OF LUMIÈRE GLOBAL STYLES
+========================================== */
