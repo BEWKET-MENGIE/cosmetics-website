@@ -1,13 +1,16 @@
 // app/quiz/page.tsx
 import type { Metadata } from 'next';
 import { SkinQuiz } from '@/components/features/SkinQuiz';
+import { getProducts } from '@/server/catalog';
 
 export const metadata: Metadata = {
   title: 'Skin Routine Quiz | LUMIÈRE',
   description: 'Answer three quick questions and get product picks and tips for your skin.',
 };
 
-export default function QuizPage() {
+export default async function QuizPage() {
+  const products = await getProducts();
+
   return (
     <section className="bg-linear-to-b from-rose-50 via-white to-white py-14 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -20,7 +23,7 @@ export default function QuizPage() {
             Three quick questions. Personal tips and product picks in under a minute.
           </p>
         </header>
-        <SkinQuiz />
+        <SkinQuiz products={products} />
       </div>
     </section>
   );

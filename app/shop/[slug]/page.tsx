@@ -7,20 +7,22 @@ import { ChevronRight } from 'lucide-react';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { ProductDetail } from '@/components/Shop/ProductDetail';
 import { SHOP_CATEGORIES, categoryHref } from '@/data/categories';
-import { ALL_PRODUCTS, getProductBySlug, getRelatedProducts, productSlug } from '@/lib/products';
+import { getRelatedProducts } from '@/lib/products';
+import { getAllProductSlugs, getProductBySlug, getProducts } from '@/server/catalog';
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
 // Builds every product page ahead of time
-export function generateStaticParams() {
-  return ALL_PRODUCTS.map((product) => ({ slug: productSlug(product) }));
+export async function generateStaticParams() {
+  const slugs = await getAllProductSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return { title: 'Product not found | LUMIÈRE' };
 
   return {
@@ -45,10 +47,10 @@ function ProductSkeleton() {
 
 async function ProductContent({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const related = getRelatedProducts(product);
+  const related = getRelatedProducts(await getProducts(), product);
   const category = SHOP_CATEGORIES.find((c) => c.productCategory === product.category);
 
   // Structured data so Google can show price and rating

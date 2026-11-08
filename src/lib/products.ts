@@ -1,9 +1,5 @@
 // src/lib/products.ts
-import { FEATURED_PRODUCTS } from '@/data/products';
 import type { Product } from '@/types';
-
-/** The full product list. If you later add a bigger list, change it here only. */
-export const ALL_PRODUCTS: Product[] = FEATURED_PRODUCTS;
 
 export const slugify = (text: string): string =>
   text
@@ -14,15 +10,12 @@ export const slugify = (text: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-export const productSlug = (product: Product): string => slugify(product.name);
+export const productSlug = (product: Product): string => product.slug ?? slugify(product.name);
 export const productHref = (product: Product): string => `/shop/${productSlug(product)}`;
 
-export const getProductBySlug = (slug: string): Product | undefined =>
-  ALL_PRODUCTS.find((product) => productSlug(product) === slug);
-
 /** Same-category products first, then the rest. Never includes the current one. */
-export function getRelatedProducts(current: Product, limit = 4): Product[] {
-  const others = ALL_PRODUCTS.filter((p) => p.id !== current.id);
+export function getRelatedProducts(all: Product[], current: Product, limit = 4): Product[] {
+  const others = all.filter((p) => p.id !== current.id);
   const same = others.filter((p) => p.category === current.category);
   const rest = others.filter((p) => p.category !== current.category);
   return [...same, ...rest].slice(0, limit);

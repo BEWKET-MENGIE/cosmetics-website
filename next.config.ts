@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  
+serverExternalPackages: ['better-sqlite3'],
 
   // Only needed for images loaded from other websites (e.g. Unsplash).
   // Images inside /public never need this.

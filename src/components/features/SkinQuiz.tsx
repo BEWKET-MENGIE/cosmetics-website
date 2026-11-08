@@ -9,10 +9,15 @@ import { categoryHref } from '@/data/categories';
 import { QUIZ_QUESTIONS } from '@/data/quiz';
 import { getQuizResult } from '@/lib/quiz';
 import type { QuizAnswers } from '@/lib/quiz';
+import type { Product } from '@/types';
 
 const TOTAL = QUIZ_QUESTIONS.length;
 
-export const SkinQuiz: React.FC = () => {
+interface SkinQuizProps {
+  products: Product[];
+}
+
+export const SkinQuiz: React.FC<SkinQuizProps> = ({ products }) => {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({});
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -37,7 +42,7 @@ export const SkinQuiz: React.FC = () => {
   };
 
   if (!question) {
-    const result = getQuizResult(answers);
+    const result = getQuizResult(answers, products);
 
     return (
       <div className="mx-auto max-w-5xl">

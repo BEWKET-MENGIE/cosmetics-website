@@ -9,6 +9,7 @@ export interface Product {
   reviewsCount: number;
   isNew?: boolean;
   isBestSeller?: boolean;
+  slug?: string;
 }
 
 export interface Category {
