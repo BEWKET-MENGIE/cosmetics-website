@@ -8,8 +8,9 @@ import { Lock, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/Button';
 import { Field, SelectField, TextAreaField } from '@/components/ui/FormField';
+import { postJson } from '@/lib/api';
 import { ETHIOPIAN_CITIES } from '@/lib/constants';
-import { PAYMENT_METHODS, calcShipping, createOrderId, saveLastOrder } from '@/lib/orders';
+import { PAYMENT_METHODS, calcShipping, saveLastOrder } from '@/lib/orders';
 import type { Order, PaymentMethod } from '@/lib/orders';
 import { OrderSummary } from './OrderSummary';
 
@@ -28,6 +29,15 @@ type Errors = Partial<Record<ErrorKey, string>>;
 const EMPTY: Values = { fullName: '', phone: '', email: '', city: '', address: '', notes: '' };
 const FIELD_ORDER: ErrorKey[] = ['fullName', 'phone', 'email', 'city', 'address', 'terms'];
 
+// Which form field each server error belongs to
+const SERVER_FIELD_MAP: Record<string, ErrorKey> = {
+  'customer.fullName': 'fullName',
+  'customer.phone': 'phone',
+  'customer.email': 'email',
+  'address.city': 'city',
+  'address.details': 'address',
+};
+
 // Ethiopian mobile numbers: 09xxxxxxxx, 07xxxxxxxx, +2519xxxxxxxx, +2517xxxxxxxx
 const PHONE_RE = /^(?:\+251|251|0)?[79]\d{8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,6 +55,16 @@ function validate(values: Values, agreed: boolean): Errors {
   if (values.address.trim().length < 5) errors.address = 'Please enter your delivery address.';
   if (!agreed) errors.terms = 'Please accept the terms to continue.';
   return errors;
+}
+
+function readOrder(data: unknown): Order | null {
+  if (typeof data !== 'object' || data === null) return null;
+  const order = (data as { order?: unknown }).order;
+  if (typeof order !== 'object' || order === null) return null;
+  const o = order as Record<string, unknown>;
+  return typeof o.id === 'string' && Array.isArray(o.items) && typeof o.total === 'number'
+    ? (order as Order)
+    : null;
 }
 
 const Section: React.FC<{ step: number; title: string; children: React.ReactNode }> = ({
@@ -75,7 +95,9 @@ export const CheckoutForm: React.FC = () => {
   const [method, setMethod] = useState<PaymentMethod>('cod');
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<{ code: string; message: string } | null>(null);
 
+  // These two are only for showing the summary. The server recalculates everything.
   const shipping = calcShipping(subtotal);
   const total = subtotal + shipping;
 
@@ -86,8 +108,9 @@ export const CheckoutForm: React.FC = () => {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
     };
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setServerError(null);
 
     const found = validate(values, agreed);
     setErrors(found);
@@ -100,24 +123,33 @@ export const CheckoutForm: React.FC = () => {
 
     setSubmitting(true);
 
-    const order: Order = {
-      id: createOrderId(),
-      placedAt: new Date().toISOString(),
-      items: cart.map(({ id, name, price, quantity, image }) => ({ id, name, price, quantity, image })),
-      subtotal,
-      shipping,
-      total,
-      customer: {
-        fullName: values.fullName.trim(),
-        phone: values.phone.trim(),
-        email: values.email.trim(),
-      },
-      address: { city: values.city, details: values.address.trim(), notes: values.notes.trim() },
+    const result = await postJson<unknown>('/api/orders', {
+      customer: { fullName: values.fullName, phone: values.phone, email: values.email },
+      address: { city: values.city, details: values.address, notes: values.notes },
       paymentMethod: method,
-    };
+      items: cart.map((item) => ({ productId: String(item.id), quantity: item.quantity })),
+    });
 
-    // TODO: send `order` to your backend / payment provider here (Chapa, Telebirr...).
-    // For now it is only saved in the browser so the confirmation page can show it.
+    if (!result.ok) {
+      const fromServer: Errors = {};
+      for (const [field, message] of Object.entries(result.fields)) {
+        const key = SERVER_FIELD_MAP[field];
+        if (key) fromServer[key] = message;
+      }
+      setErrors(fromServer);
+      setServerError({ code: result.code, message: result.error });
+      setSubmitting(false);
+      return;
+    }
+
+    const order = readOrder(result.data);
+    if (!order) {
+      setServerError({ code: 'server', message: 'We could not confirm your order. Please try again.' });
+      setSubmitting(false);
+      return;
+    }
+
+    // Keep `submitting` true: the page is about to change
     saveLastOrder(order);
     clearCart();
     router.push('/checkout/success');
@@ -292,9 +324,25 @@ export const CheckoutForm: React.FC = () => {
           )}
         </div>
 
+        {serverError && (
+          <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+            <p>{serverError.message}</p>
+            {serverError.code === 'unavailable' && (
+              <button
+                type="button"
+                onClick={clearCart}
+                className="mt-3 cursor-pointer font-semibold underline underline-offset-4"
+              >
+                Clear my bag
+              </button>
+            )}
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={submitting}
+          aria-busy={submitting}
           className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-rose-500 py-4 text-sm font-bold text-white shadow-lg shadow-rose-200 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Lock size={16} aria-hidden="true" />

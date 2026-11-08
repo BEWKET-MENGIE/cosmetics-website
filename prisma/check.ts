@@ -1,4 +1,3 @@
-// prisma/check.ts
 import 'dotenv/config';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '../src/generated/prisma/client';
@@ -19,14 +18,21 @@ async function main() {
     ContactMessage: await prisma.contactMessage.count(),
   });
 
-  console.log('Products per category');
+  console.log('\nProducts per category');
   const categories = await prisma.category.findMany({
     orderBy: { sortOrder: 'asc' },
     select: { name: true, _count: { select: { products: true } } },
   });
   console.table(categories.map((c) => ({ category: c.name, products: c._count.products })));
 
-  console.log('Orders');
+  console.log('\nProducts (id and stock)');
+  const products = await prisma.product.findMany({
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, price: true, stock: true },
+  });
+  console.table(products);
+
+  console.log('\nOrders');
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: 'asc' },
     select: { number: true, status: true, paymentMethod: true, total: true },
@@ -36,7 +42,9 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error(error);
+    console.error('Error executing database check script:', error);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
