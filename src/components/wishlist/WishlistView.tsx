@@ -7,9 +7,13 @@ import { ProductCard } from '@/components/ui/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
-import { ALL_PRODUCTS } from '@/lib/products';
+import type { Product } from '@/types';
 
-export const WishlistView: React.FC = () => {
+interface WishlistViewProps {
+  products: Product[];
+}
+
+export const WishlistView: React.FC<WishlistViewProps> = ({ products: catalog }) => {
   const { ids, isHydrated, clear } = useWishlist();
   const { addToCart } = useCart();
 
@@ -24,9 +28,10 @@ export const WishlistView: React.FC = () => {
     );
   }
 
+  // Saved ids that no longer exist in the catalog are skipped
   const products = ids
-    .map((id) => ALL_PRODUCTS.find((p) => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+    .map((id) => catalog.find((p) => p.id === id))
+    .filter((p): p is Product => Boolean(p));
 
   if (products.length === 0) {
     return (

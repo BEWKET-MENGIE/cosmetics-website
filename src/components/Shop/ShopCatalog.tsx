@@ -3,16 +3,20 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { FEATURED_PRODUCTS } from '@/data/products';
 import { SHOP_CATEGORIES } from '@/data/categories';
 import { filterAndSortProducts, isSortKey } from '@/lib/shop';
 import type { SortKey } from '@/lib/shop';
 import { ProductCard } from '@/components/ui/ProductCard';
+import type { Product } from '@/types';
 import { ShopToolbar } from './ShopToolbar';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-export const ShopCatalog: React.FC = () => {
+interface ShopCatalogProps {
+  products: Product[];
+}
+
+export const ShopCatalog: React.FC<ShopCatalogProps> = ({ products: catalog }) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -64,20 +68,20 @@ export const ShopCatalog: React.FC = () => {
   // ---- Results ----
   const counts = useMemo(() => {
     const result: Record<string, number> = {};
-    for (const product of FEATURED_PRODUCTS) {
+    for (const product of catalog) {
       result[product.category] = (result[product.category] ?? 0) + 1;
     }
     return result;
-  }, []);
+  }, [catalog]);
 
   const products = useMemo(
     () =>
-      filterAndSortProducts(FEATURED_PRODUCTS, {
+      filterAndSortProducts(catalog, {
         query: searchText,
         category: category?.productCategory,
         sort,
       }),
-    [searchText, category, sort],
+    [catalog, searchText, category, sort],
   );
 
   const hasFilters = searchText.trim() !== '' || activeCategory !== '' || sort !== 'featured';
@@ -98,7 +102,7 @@ export const ShopCatalog: React.FC = () => {
         sort={sort}
         onSortChange={(next) => updateParams({ sort: next === 'featured' ? null : next })}
         counts={counts}
-        total={FEATURED_PRODUCTS.length}
+        total={catalog.length}
       />
 
       <div className="mb-6 flex items-center justify-between px-1 text-sm text-slate-600">

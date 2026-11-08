@@ -1,0 +1,134 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Money is stored as whole ETB (Int), and statuses are plain strings.
+// This keeps the schema portable, so moving to Postgres later is a small change.
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  /// The value shown on products, e.g. "Skincare"
+  label       String
+  description String
+  image       String
+  sortOrder   Int       @default(0)
+  products    Product[]
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  name         String
+  description  String
+  image        String
+  price        Int
+  rating       Float       @default(0)
+  reviewsCount Int         @default(0)
+  stock        Int         @default(50)
+  isNew        Boolean     @default(false)
+  isBestSeller Boolean     @default(false)
+  featured     Boolean     @default(false)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  category     Category    @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  orderItems   OrderItem[]
+
+  @@index([categoryId])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  /// Number shown to the customer, e.g. LUM-1001
+  number        String      @unique
+  /// pending | paid | shipped | delivered | cancelled
+  status        String      @default("pending")
+  /// cod | telebirr | cbe | chapa
+  paymentMethod String
+  /// unpaid | paid | failed | refunded
+  paymentStatus String      @default("unpaid")
+  /// Chapa tx_ref, filled in during Phase 4
+  paymentRef    String?     @unique
+  subtotal      Int
+  shipping      Int
+  total         Int
+  fullName      String
+  phone         String
+  email         String?
+  city          String
+  address       String
+  notes         String?
+  createdAt     DateTime    @default(now())
+  items         OrderItem[]
+
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String?
+  /// Name, price and image are copied at purchase time, so old orders never change
+  name      String
+  price     Int
+  image     String
+  quantity  Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  category    String
+  publishedAt DateTime
+  authorName  String
+  authorRole  String
+  excerpt     String
+  image       String
+  imageAlt    String
+  featured    Boolean  @default(false)
+  /// JSON text: array of { type: "heading" | "paragraph" | "quote", text: string }
+  body        String
+  createdAt   DateTime @default(now())
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  name        String
+  role        String
+  comment     String
+  avatar      String
+  rating      Int
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  /// new | replied | closed
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+}

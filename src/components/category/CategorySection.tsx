@@ -1,18 +1,19 @@
 // src/components/category/CategorySection.tsx
-import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { SectionHeading } from '@/components/ui/SectionHeading';
-import { SHOP_CATEGORIES, categoryHref, formatProductCount } from '@/data/categories';
+import { categoryHref, formatProductCount } from '@/data/categories';
+import { getCategories } from '@/server/catalog';
 
 interface CategorySectionProps {
   /** Show only the first N categories (e.g. 4 on the home page). */
   limit?: number;
 }
 
-export const CategorySection: React.FC<CategorySectionProps> = ({ limit }) => {
-  const categories = limit ? SHOP_CATEGORIES.slice(0, limit) : SHOP_CATEGORIES;
+export async function CategorySection({ limit }: CategorySectionProps) {
+  const all = await getCategories();
+  const categories = limit ? all.slice(0, limit) : all;
 
   return (
     <section className="bg-white py-20">
@@ -55,4 +56,4 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ limit }) => {
       </div>
     </section>
   );
-};
+}

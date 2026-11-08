@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Field, SelectField, TextAreaField } from '@/components/ui/FormField';
+import { postJson } from '@/lib/api';
 
 const SUBJECTS = ['Order question', 'Product advice', 'Returns & refunds', 'Partnership', 'Something else'];
 
@@ -18,11 +19,15 @@ type Errors = Partial<Record<keyof Values, string>>;
 
 const EMPTY: Values = { name: '', email: '', subject: SUBJECTS[0], message: '' };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const KEYS: (keyof Values)[] = ['name', 'email', 'subject', 'message'];
 
 export const ContactForm: React.FC = () => {
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
+  const [trap, setTrap] = useState(''); // honeypot: only bots fill this in
+  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [serverError, setServerError] = useState('');
 
   const onChange =
     (key: keyof Values) =>
@@ -30,10 +35,12 @@ export const ContactForm: React.FC = () => {
       setValues((prev) => ({ ...prev, [key]: e.target.value }));
       setErrors((prev) => ({ ...prev, [key]: undefined }));
       setSent(false);
+      setServerError('');
     };
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setServerError('');
 
     const found: Errors = {};
     if (values.name.trim().length < 2) found.name = 'Please enter your name.';
@@ -47,7 +54,20 @@ export const ContactForm: React.FC = () => {
       return;
     }
 
-    // TODO: send `values` to your API / email service
+    setSending(true);
+    const result = await postJson<{ ok: true }>('/api/contact', { ...values, website: trap });
+    setSending(false);
+
+    if (!result.ok) {
+      const fromServer: Errors = {};
+      for (const key of KEYS) {
+        if (result.fields[key]) fromServer[key] = result.fields[key];
+      }
+      setErrors(fromServer);
+      setServerError(result.error);
+      return;
+    }
+
     setSent(true);
     setValues(EMPTY);
   };
@@ -80,7 +100,13 @@ export const ContactForm: React.FC = () => {
         />
       </div>
 
-      <SelectField id="contact-subject" label="Subject" value={values.subject} onChange={onChange('subject')}>
+      <SelectField
+        id="contact-subject"
+        label="Subject"
+        value={values.subject}
+        onChange={onChange('subject')}
+        error={errors.subject}
+      >
         {SUBJECTS.map((subject) => (
           <option key={subject} value={subject}>
             {subject}
@@ -98,20 +124,35 @@ export const ContactForm: React.FC = () => {
         error={errors.message}
       />
 
+      {/* Honeypot: hidden from people and screen readers */}
+      <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden">
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={trap}
+          onChange={(e) => setTrap(e.target.value)}
+        />
+      </div>
+
       <button
         type="submit"
-        className="w-full cursor-pointer rounded-full bg-rose-500 px-8 py-4 text-sm font-bold text-white shadow-lg shadow-rose-200 transition-colors hover:bg-rose-600 sm:w-auto"
+        disabled={sending}
+        aria-busy={sending}
+        className="w-full cursor-pointer rounded-full bg-rose-500 px-8 py-4 text-sm font-bold text-white shadow-lg shadow-rose-200 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
-        Send Message
+        {sending ? 'Sending...' : 'Send Message'}
       </button>
 
-      <p role="status" className="min-h-6 text-sm font-semibold text-emerald-600">
+      <div className="min-h-6 text-sm font-semibold" role={serverError ? 'alert' : 'status'}>
+        {serverError && <p className="text-rose-600">{serverError}</p>}
         {sent && (
-          <span className="flex items-center gap-2">
+          <p className="flex items-center gap-2 text-emerald-600">
             <CheckCircle2 size={18} aria-hidden="true" /> Thank you! We will reply within 2 business days.
-          </span>
+          </p>
         )}
-      </p>
+      </div>
     </form>
   );
 };

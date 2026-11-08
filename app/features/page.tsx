@@ -1,12 +1,10 @@
-import React from 'react';
+// app/features/page.tsx
+import type { Metadata } from 'next';
 import { FeaturedProducts } from '@/components/features/FeaturedProducts';
-import { SkinQuiz } from '@/components/features/SkinQuiz';
+
+export const metadata: Metadata = { title: 'Featured Products | LUMIÈRE' };
+
 
 export default function FeaturesPage() {
-  return (
-    <main className="min-h-screen bg-white py-20 space-y-16">
-      <FeaturedProducts />
-      <SkinQuiz />
-    </main>
-  );
+  return <FeaturedProducts />;
 }

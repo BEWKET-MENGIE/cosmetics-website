@@ -1,14 +1,16 @@
 // src/components/category/CategoryGrid.tsx
-import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
-import { SHOP_CATEGORIES, categoryHref, formatProductCount } from '@/data/categories';
+import { categoryHref, formatProductCount } from '@/data/categories';
+import { getCategories } from '@/server/catalog';
 
-export const CategoryGrid: React.FC = () => {
+export async function CategoryGrid() {
+  const categories = await getCategories();
+
   return (
     <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-      {SHOP_CATEGORIES.map((cat, index) => (
+      {categories.map((cat, index) => (
         <li key={cat.slug} className="flex">
           <Link
             href={categoryHref(cat.slug)}
@@ -48,4 +50,4 @@ export const CategoryGrid: React.FC = () => {
       ))}
     </ul>
   );
-};
+}
