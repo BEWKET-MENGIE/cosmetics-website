@@ -6,7 +6,9 @@ import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { WhatsAppButton } from '@/components/common/WhatsAppButton';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+ // <-- 1. Import it
 import { SITE_URL } from '@/lib/site';
 
 const sans = Inter({
@@ -68,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
             <CartDrawer />
           </WishlistProvider>
+          <WhatsAppButton />
         </CartProvider>
       </body>
     </html>
