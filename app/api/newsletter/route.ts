@@ -1,4 +1,6 @@
 // app/api/newsletter/route.ts
+import { notifyWelcome } from '@/server/email/notify';
+import { sendInBackground } from '@/server/email/send';
 import { db } from '@/lib/db';
 import { fieldErrors, getClientIp, json, readJson } from '@/server/http';
 import { rateLimit } from '@/server/rateLimit';
@@ -8,7 +10,7 @@ export async function POST(request: Request) {
   const limit = rateLimit(`newsletter:${getClientIp(request)}`, 5, 10 * 60 * 1000);
   if (!limit.ok) {
     return json(
-      { code: 'rate_limited', error: 'Too many attempts. Please try again in a few minutes.' },
+      { code: 'rate_limited', error: 'Too many requests. Please try again later.' },
       429,
       { 'Retry-After': String(limit.retryAfter) },
     );
@@ -17,25 +19,26 @@ export async function POST(request: Request) {
   const parsed = newsletterSchema.safeParse(await readJson(request));
   if (!parsed.success) {
     return json(
-      { code: 'validation', error: 'Enter a valid email address.', fields: fieldErrors(parsed.error) },
+      { code: 'validation', error: 'Please check your email address.', fields: fieldErrors(parsed.error) },
       400,
     );
   }
-
-  // Honeypot filled in: pretend it worked, save nothing
-  if (parsed.data.website) return json({ ok: true });
 
   const { email } = parsed.data;
 
   try {
     const existing = await db.subscriber.findUnique({ where: { email } });
     if (existing?.isActive) return json({ ok: true, alreadySubscribed: true });
-
+    
     await db.subscriber.upsert({
       where: { email },
       update: { isActive: true },
       create: { email },
     });
+
+    // New (or returning) subscriber: send the welcome email with the unsubscribe link
+    sendInBackground(() => notifyWelcome(email));
+    
     return json({ ok: true }, 201);
   } catch (error) {
     console.error('Newsletter failed', error);
