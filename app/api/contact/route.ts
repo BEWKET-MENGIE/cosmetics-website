@@ -1,4 +1,6 @@
 // app/api/contact/route.ts
+import { notifyContact } from '@/server/email/notify';
+import { sendInBackground } from '@/server/email/send';
 import { db } from '@/lib/db';
 import { fieldErrors, getClientIp, json, readJson } from '@/server/http';
 import { rateLimit } from '@/server/rateLimit';
@@ -29,6 +31,7 @@ export async function POST(request: Request) {
 
   try {
     await db.contactMessage.create({ data: { name, email, subject, message } });
+    sendInBackground(() => notifyContact({ name, email, subject, message }));
     return json({ ok: true }, 201);
   } catch (error) {
     console.error('Contact failed', error);
