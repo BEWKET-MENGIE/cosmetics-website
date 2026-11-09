@@ -42,7 +42,7 @@ export const orderSchema = z.object({
     details: text(5, 300, 'Please enter your delivery address.'),
     notes: z.string().trim().max(500, 'This is too long.').default(''),
   }),
-  paymentMethod: z.enum(['cod', 'telebirr', 'cbe', 'chapa']),
+  paymentMethod: z.enum(['cod', 'chapa']),
   // Only ids and quantities. Prices are never accepted from the browser.
   items: z
     .array(
@@ -53,6 +53,9 @@ export const orderSchema = z.object({
     )
     .min(1, 'Your bag is empty.')
     .max(30, 'Too many different items in one order.'),
+}).refine((data) => data.paymentMethod !== 'chapa' || data.customer.email !== '', {
+  message: 'Email is required to pay online.',
+  path: ['customer', 'email'],
 });
 
 export const newsletterSchema = z.object({

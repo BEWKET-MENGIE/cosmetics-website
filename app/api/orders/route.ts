@@ -6,6 +6,7 @@ import { toClientOrder } from '@/server/orders';
 import { fieldErrors, getClientIp, json, readJson } from '@/server/http';
 import { rateLimit } from '@/server/rateLimit';
 import { normalizePhone, orderSchema } from '@/server/schemas';
+import { startOnlinePayment } from '@/server/payments';
 
 class StockError extends Error {}
 
@@ -112,7 +113,26 @@ export async function POST(request: Request) {
       });
     });
 
-    return json({ order: toClientOrder(created) }, 201);
+    // Online payment: ask Chapa for a payment page. If that fails the order still exists,
+    // and the customer gets a "Try again" button instead of losing their order.
+    let checkoutUrl: string | null = null;
+    let paymentError = false;
+    if (created.paymentMethod === 'chapa') {
+      try {
+        checkoutUrl = await startOnlinePayment({
+          number: created.number,
+          total: created.total,
+          fullName: created.fullName,
+          phone: created.phone,
+          email: created.email ?? '',
+        });
+      } catch (error) {
+        console.error('Could not start payment', error);
+        paymentError = true;
+      }
+    }
+
+    return json({ order: toClientOrder(created), checkoutUrl, paymentError }, 201);
   } catch (error) {
     if (error instanceof StockError) {
       return json(

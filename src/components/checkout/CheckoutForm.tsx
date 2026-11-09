@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, SelectField, TextAreaField } from '@/components/ui/FormField';
 import { postJson } from '@/lib/api';
 import { ETHIOPIAN_CITIES } from '@/lib/constants';
-import { PAYMENT_METHODS, calcShipping, saveLastOrder } from '@/lib/orders';
+import { CHECKOUT_METHODS, calcShipping, saveLastOrder } from '@/lib/orders';
 import type { Order, PaymentMethod } from '@/lib/orders';
 import { OrderSummary } from './OrderSummary';
 
@@ -42,14 +42,16 @@ const SERVER_FIELD_MAP: Record<string, ErrorKey> = {
 const PHONE_RE = /^(?:\+251|251|0)?[79]\d{8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validate(values: Values, agreed: boolean): Errors {
+function validate(values: Values, agreed: boolean, method: PaymentMethod): Errors {
   const errors: Errors = {};
   if (values.fullName.trim().length < 2) errors.fullName = 'Please enter your full name.';
   if (!PHONE_RE.test(values.phone.replace(/[\s-]/g, ''))) {
     errors.phone = 'Enter a valid mobile number, for example 0911 234 567.';
   }
-  if (values.email.trim() && !EMAIL_RE.test(values.email.trim())) {
-    errors.email = 'Enter a valid email address, or leave it empty.';
+  if (!values.email.trim()) {
+    if (method === 'chapa') errors.email = 'Email is required to pay online.';
+  } else if (!EMAIL_RE.test(values.email.trim())) {
+    errors.email = 'Enter a valid email address.';
   }
   if (!values.city) errors.city = 'Please choose your city.';
   if (values.address.trim().length < 5) errors.address = 'Please enter your delivery address.';
@@ -65,6 +67,12 @@ function readOrder(data: unknown): Order | null {
   return typeof o.id === 'string' && Array.isArray(o.items) && typeof o.total === 'number'
     ? (order as Order)
     : null;
+}
+
+function readCheckoutUrl(data: unknown): string | null {
+  if (typeof data !== 'object' || data === null) return null;
+  const url = (data as { checkoutUrl?: unknown }).checkoutUrl;
+  return typeof url === 'string' && /^https?:\/\//.test(url) ? url : null;
 }
 
 const Section: React.FC<{ step: number; title: string; children: React.ReactNode }> = ({
@@ -112,7 +120,7 @@ export const CheckoutForm: React.FC = () => {
     e.preventDefault();
     setServerError(null);
 
-    const found = validate(values, agreed);
+    const found = validate(values, agreed, method);
     setErrors(found);
 
     const firstError = FIELD_ORDER.find((key) => found[key]);
@@ -149,9 +157,15 @@ export const CheckoutForm: React.FC = () => {
       return;
     }
 
-    // Keep `submitting` true: the page is about to change
+    const checkoutUrl = readCheckoutUrl(result.data);
     saveLastOrder(order);
     clearCart();
+    if (order.paymentMethod === 'chapa') {
+      // Go to the payment page, or to the return page (which offers "Try again") if it could not start
+      if (checkoutUrl) window.location.assign(checkoutUrl);
+      else router.push(`/checkout/return?ref=${encodeURIComponent(order.id)}`);
+      return;
+    }
     router.push('/checkout/success');
   };
 
@@ -206,7 +220,8 @@ export const CheckoutForm: React.FC = () => {
             />
             <Field
               id="checkout-email"
-              label="Email (optional)"
+              label={method === 'chapa' ? 'Email' : 'Email (optional)'}
+              required={method === 'chapa'}
               type="email"
               autoComplete="email"
               value={values.email}
@@ -260,7 +275,7 @@ export const CheckoutForm: React.FC = () => {
           <fieldset>
             <legend className="sr-only">Payment method</legend>
             <div className="space-y-3">
-              {PAYMENT_METHODS.map((option) => (
+              {CHECKOUT_METHODS.map((option) => (
                 <label
                   key={option.value}
                   className="flex cursor-pointer items-start gap-4 rounded-xl border border-slate-200 p-4 transition-colors hover:border-rose-300 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-rose-500"

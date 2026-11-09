@@ -17,10 +17,15 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string; description
   },
   {
     value: 'chapa',
-    label: 'Card or mobile money (Chapa)',
-    description: 'We will send you a secure payment link after you place the order.',
+    label: 'Pay online (Telebirr, CBE Birr, card)',
+    description: 'Secure checkout by Chapa. You will be redirected to complete your payment.',
   },
 ];
+
+/** The options customers can choose today. Telebirr and CBE are paid through Chapa. */
+export const CHECKOUT_METHODS = PAYMENT_METHODS.filter(
+  (method) => method.value === 'cod' || method.value === 'chapa',
+);
 
 export interface OrderItem {
   id: string | number;

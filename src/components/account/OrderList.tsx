@@ -1,13 +1,14 @@
 // src/components/account/OrderList.tsx
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, RotateCcw } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatDate } from '@/lib/date';
 import { formatETB } from '@/lib/format';
 import { PAYMENT_METHODS } from '@/lib/orders';
 import type { Order } from '@/lib/orders';
+import { postJson } from '@/lib/api';
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -23,6 +24,23 @@ interface OrderListProps {
 
 export const OrderList: React.FC<OrderListProps> = ({ orders }) => {
   const { addToCart } = useCart();
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const [payError, setPayError] = useState('');
+
+  const needsPayment = (order: Order) =>
+    order.paymentMethod === 'chapa' && order.paymentStatus !== 'paid' && order.status !== 'cancelled';
+
+  const payNow = async (order: Order) => {
+    setPayingId(order.id);
+    setPayError('');
+    const result = await postJson<{ checkoutUrl: string }>('/api/payments/retry', { number: order.id });
+    if (!result.ok) {
+      setPayError(result.error);
+      setPayingId(null);
+      return;
+    }
+    window.location.assign(result.data.checkoutUrl);
+  };
 
   const orderAgain = (order: Order) => {
     order.items.forEach((item) =>
@@ -112,13 +130,26 @@ export const OrderList: React.FC<OrderListProps> = ({ orders }) => {
                   </div>
                 </dl>
 
-                <button
-                  type="button"
-                  onClick={() => orderAgain(order)}
-                  className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-full bg-rose-500 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-rose-600"
-                >
-                  <RotateCcw size={16} aria-hidden="true" /> Order again
-                </button>
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  {needsPayment(order) && (
+                    <button
+                      type="button"
+                      onClick={() => payNow(order)}
+                      disabled={payingId === order.id}
+                      className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-emerald-500 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {payingId === order.id ? 'Starting...' : 'Pay now'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => orderAgain(order)}
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-rose-500 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-rose-600"
+                  >
+                    <RotateCcw size={16} aria-hidden="true" /> Order again
+                  </button>
+                </div>
+                {payError && <p role="alert" className="mt-3 text-sm text-rose-600">{payError}</p>}
               </div>
             </details>
           </li>

@@ -8,6 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { WhatsAppButton } from '@/components/common/WhatsAppButton';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { LeftCategorySidebar } from '@/components/common/LeftCategorySidebar'; // <-- 1. Import it
  // <-- 1. Import it
 import { SITE_URL } from '@/lib/site';
 
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartProvider>
           <WishlistProvider>
             <Navbar />
+            <LeftCategorySidebar />
             <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
               {children}
             </main>

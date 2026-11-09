@@ -97,7 +97,14 @@ export const OrderSuccess: React.FC = () => {
             )}
             <div>
               <dt className="font-semibold text-slate-500">Payment</dt>
-              <dd className="text-slate-900">{payment?.label ?? order.paymentMethod}</dd>
+              <dd className="text-slate-900">
+                {payment?.label ?? order.paymentMethod}
+                {order.paymentStatus === 'paid' ? (
+                  <p className="mt-2 text-sm font-semibold text-emerald-600">Payment received. Thank you!</p>
+                ) : order.paymentMethod === 'cod' ? (
+                  <p className="mt-2 text-sm font-semibold text-slate-600">You will pay in cash when your order arrives.</p>
+                ) : null}
+              </dd>
             </div>
           </dl>
         </section>
