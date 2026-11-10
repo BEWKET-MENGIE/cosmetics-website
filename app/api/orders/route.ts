@@ -1,4 +1,6 @@
 // app/api/orders/route.ts
+import { notifyOrderPlaced } from '@/server/email/notify';
+import { sendInBackground } from '@/server/email/send';
 import { db } from '@/lib/db';
 import { calcShipping, createOrderId } from '@/lib/orders';
 import { auth } from '@/lib/auth';
@@ -73,7 +75,6 @@ export async function POST(request: Request) {
 
   try {
     // One all-or-nothing step: take the stock off, then save the order.
-    // If anyone bought the last item a moment ago, this rolls back.
     const created = await db.$transaction(async (tx) => {
       for (const line of lines) {
         const result = await tx.product.updateMany({
@@ -113,8 +114,7 @@ export async function POST(request: Request) {
       });
     });
 
-    // Online payment: ask Chapa for a payment page. If that fails the order still exists,
-    // and the customer gets a "Try again" button instead of losing their order.
+    // Online payment: ask Chapa for a payment page via startOnlinePayment
     let checkoutUrl: string | null = null;
     let paymentError = false;
     if (created.paymentMethod === 'chapa') {
@@ -132,7 +132,9 @@ export async function POST(request: Request) {
       }
     }
 
-    return json({ order: toClientOrder(created), checkoutUrl, paymentError }, 201);
+    const clientOrder = toClientOrder(created);
+    sendInBackground(() => notifyOrderPlaced(clientOrder));
+    return json({ order: clientOrder, checkoutUrl, paymentError }, 201);
   } catch (error) {
     if (error instanceof StockError) {
       return json(
