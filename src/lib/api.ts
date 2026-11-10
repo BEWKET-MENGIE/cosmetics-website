@@ -10,10 +10,14 @@ export interface ApiFailure {
 
 export type ApiResult<T> = { ok: true; data: T } | ApiFailure;
 
-export async function postJson<T>(url: string, body: unknown): Promise<ApiResult<T>> {
+export async function requestJson<T>(
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+  url: string,
+  body: unknown,
+): Promise<ApiResult<T>> {
   try {
     const response = await fetch(url, {
-      method: 'POST',
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
@@ -39,3 +43,6 @@ export async function postJson<T>(url: string, body: unknown): Promise<ApiResult
     };
   }
 }
+
+export const postJson = <T>(url: string, body: unknown) => requestJson<T>('POST', url, body);
+export const patchJson = <T>(url: string, body: unknown) => requestJson<T>('PATCH', url, body);
