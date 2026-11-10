@@ -1,5 +1,6 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
@@ -57,7 +58,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <CartProvider>
             <WishlistProvider>
-              <Navbar />
+              <Suspense fallback={<div className="h-16 w-full bg-white" />}>
+                <Navbar />
+              </Suspense>
               <LeftCategorySidebar />
               <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
                 {children}
