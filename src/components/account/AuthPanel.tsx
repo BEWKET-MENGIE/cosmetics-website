@@ -2,6 +2,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { MailCheck } from 'lucide-react';
 import { Field } from '@/components/ui/FormField';
 import { authClient } from '@/lib/auth-client';
 
@@ -17,17 +19,20 @@ export const AuthPanel: React.FC = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
   const switchMode = (next: Mode) => {
     setMode(next);
     setErrors({});
     setFormError('');
+    setNotice('');
   };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError('');
+    setNotice('');
 
     const found: Errors = {};
     if (mode === 'signup' && name.trim().length < 2) found.name = 'Please enter your name.';
@@ -44,13 +49,29 @@ export const AuthPanel: React.FC = () => {
     setBusy(true);
     const result =
       mode === 'signup'
-        ? await authClient.signUp.email({ name: name.trim(), email: email.trim(), password })
+        ? await authClient.signUp.email({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            callbackURL: '/account',
+          })
         : await authClient.signIn.email({ email: email.trim(), password });
     setBusy(false);
 
-    // On success the session hook updates and this panel disappears by itself
     if (result.error) {
-      setFormError(result.error.message ?? 'Something went wrong. Please try again.');
+      setFormError(
+        result.error.status === 403
+          ? 'Please confirm your email first. We just sent you a new link.'
+          : (result.error.message ?? 'Something went wrong. Please try again.'),
+      );
+      return;
+    }
+
+    // If verification is required there is no session yet, so tell the person what to do next.
+    // Otherwise the session hook updates and this panel disappears by itself.
+    if (mode === 'signup') {
+      setNotice(`Account created. We sent a confirmation link to ${email.trim()}. Open it to finish.`);
+      setPassword('');
     }
   };
 
@@ -70,64 +91,79 @@ export const AuthPanel: React.FC = () => {
         </button>
       </div>
 
-      <form onSubmit={onSubmit} noValidate className="space-y-5">
-        {mode === 'signup' && (
+      {notice ? (
+        <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center text-sm leading-6 text-emerald-900">
+          <MailCheck className="mx-auto mb-2 text-emerald-600" size={32} aria-hidden="true" />
+          {notice}
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} noValidate className="space-y-5">
+          {mode === 'signup' && (
+            <Field
+              id="auth-name"
+              label="Full name"
+              autoComplete="name"
+              required
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setErrors((prev) => ({ ...prev, name: undefined }));
+              }}
+              error={errors.name}
+            />
+          )}
           <Field
-            id="auth-name"
-            label="Full name"
-            autoComplete="name"
+            id="auth-email"
+            label="Email"
+            type="email"
+            autoComplete="email"
             required
-            value={name}
+            value={email}
             onChange={(e) => {
-              setName(e.target.value);
-              setErrors((prev) => ({ ...prev, name: undefined }));
+              setEmail(e.target.value);
+              setErrors((prev) => ({ ...prev, email: undefined }));
             }}
-            error={errors.name}
+            error={errors.email}
           />
-        )}
-        <Field
-          id="auth-email"
-          label="Email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setErrors((prev) => ({ ...prev, email: undefined }));
-          }}
-          error={errors.email}
-        />
-        <Field
-          id="auth-password"
-          label="Password"
-          type="password"
-          autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-          required
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            setErrors((prev) => ({ ...prev, password: undefined }));
-          }}
-          error={errors.password}
-          hint={mode === 'signup' ? 'At least 8 characters.' : undefined}
-        />
+          <Field
+            id="auth-password"
+            label="Password"
+            type="password"
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            required
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrors((prev) => ({ ...prev, password: undefined }));
+            }}
+            error={errors.password}
+            hint={mode === 'signup' ? 'At least 8 characters.' : undefined}
+          />
 
-        {formError && (
-          <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-            {formError}
-          </p>
-        )}
+          {mode === 'signin' && (
+            <p className="-mt-2 text-right text-sm">
+              <Link href="/forgot-password" className="font-semibold text-rose-600 hover:underline">
+                Forgot password?
+              </Link>
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          aria-busy={busy}
-          className="w-full cursor-pointer rounded-full bg-rose-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-rose-200 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {busy ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Sign in'}
-        </button>
-      </form>
+          {formError && (
+            <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+              {formError}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={busy}
+            aria-busy={busy}
+            className="w-full cursor-pointer rounded-full bg-rose-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-rose-200 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {busy ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Sign in'}
+          </button>
+        </form>
+      )}
     </div>
   );
 };
