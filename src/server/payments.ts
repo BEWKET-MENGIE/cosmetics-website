@@ -1,4 +1,7 @@
 // src/server/payments.ts
+import { notifyPaymentReceived } from '@/server/email/notify';
+import { sendInBackground } from '@/server/email/send';
+import { toClientOrder } from '@/server/orders';
 import { db } from '@/lib/db';
 import { SITE_URL } from '@/lib/site';
 import { initializePayment, verifyPayment } from '@/server/chapa';
@@ -58,16 +61,23 @@ export async function confirmPayment(number: string): Promise<PaymentState> {
       console.error('Payment mismatch', { number, expected: order.total, received: result });
       return 'failed';
     }
-
     // Move a pending order to "paid"; leave orders that already moved on (e.g. shipped) alone
-    await db.order.updateMany({
+    const moved = await db.order.updateMany({
       where: { id: order.id, paymentStatus: { not: 'paid' }, status: 'pending' },
       data: { paymentStatus: 'paid', status: 'paid' },
     });
-    await db.order.updateMany({
+    const flagged = await db.order.updateMany({
       where: { id: order.id, paymentStatus: { not: 'paid' } },
       data: { paymentStatus: 'paid' },
     });
+    // Only the call that really flipped the order to "paid" sends the receipt
+    if (moved.count + flagged.count > 0) {
+      const full = await db.order.findUnique({ where: { id: order.id }, include: { items: true } });
+      if (full) {
+        const clientOrder = toClientOrder(full);
+        sendInBackground(() => notifyPaymentReceived(clientOrder));
+      }
+    }
     return 'paid';
   }
 
