@@ -7,9 +7,6 @@ datasource db {
   provider = "sqlite"
 }
 
-// Money is stored as whole ETB (Int), and statuses are plain strings.
-// This keeps the schema portable, so moving to Postgres later is a small change.
-
 model Category {
   id          String    @id @default(cuid())
   slug        String    @unique
