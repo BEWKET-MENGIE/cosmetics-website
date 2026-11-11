@@ -16,7 +16,7 @@ export default function HomePage() {
       <CategorySection limit={4} />
       <HeroStats />
       <WhyChooseUs showLink />
-      <Testimonials />
+     <Testimonials limit={3} />
       <Newsletter />
     </>
   );

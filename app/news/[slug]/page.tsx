@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { ArrowLeft, Clock } from 'lucide-react';
-import { ARTICLES, getArticleBySlug, getReadingMinutes, getRelatedArticles } from '@/data/articles';
+import { getReadingMinutes } from '@/data/articles';
+import { getRelatedArticles } from '@/lib/articles';
+import { getAllArticleSlugs, getArticleBySlug, getArticles } from '@/server/content';
 import { formatDate } from '@/lib/date';
 import { ArticleBody } from '@/components/news/ArticleBody';
 import { ArticleGrid } from '@/components/news/ArticleGrid';
@@ -19,13 +21,14 @@ interface ArticlePageProps {
 }
 
 // Builds every article page ahead of time
-export function generateStaticParams() {
-  return ARTICLES.map((article) => ({ slug: article.slug }));
+export async function generateStaticParams() {
+  const slugs = await getAllArticleSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  const article = await getArticleBySlug(slug);
 
   if (!article) return { title: 'Article not found | LUMIÈRE' };
 
@@ -55,11 +58,11 @@ function ArticleSkeleton() {
 
 async function ArticleContent({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  const article = await getArticleBySlug(slug);
 
   if (!article) notFound();
 
-  const related = getRelatedArticles(article);
+  const related = getRelatedArticles(await getArticles(), article);
 
   return (
     <>
