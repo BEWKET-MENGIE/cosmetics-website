@@ -389,7 +389,23 @@ async function main() {
       body: JSON.stringify(article.body),
     })),
   });
-  await prisma.testimonial.createMany({ data: TESTIMONIALS });
+
+  const PENDING_TESTIMONIALS = [
+    {
+      name: 'Betty Worku',
+      role: 'Customer',
+      rating: 5,
+      comment: 'The oil absorbed quickly and my skin feels so soft. Waiting for my second order!',
+      avatar: '',
+    },
+  ];
+  await prisma.testimonial.createMany({
+    data: [
+      ...TESTIMONIALS.map((t) => ({ ...t, isPublished: true })),
+      ...PENDING_TESTIMONIALS.map((t) => ({ ...t, isPublished: false })),
+    ],
+  });
+
   await prisma.subscriber.createMany({ data: SUBSCRIBERS.map((email) => ({ email })) });
   await prisma.contactMessage.createMany({ data: MESSAGES });
 

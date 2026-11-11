@@ -2,21 +2,26 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { ARTICLES, ARTICLE_CATEGORIES } from '@/data/articles';
+import type { Article } from '@/data/articles';
+import { articleCategories } from '@/lib/articles';
 import { ArticleGrid } from './ArticleGrid';
 import { FeaturedArticle } from './FeaturedArticle';
 
 const ALL = 'All';
-const FILTERS = [ALL, ...ARTICLE_CATEGORIES];
 
-const countFor = (filter: string) =>
-  filter === ALL ? ARTICLES.length : ARTICLES.filter((a) => a.category === filter).length;
+interface JournalFeedProps {
+  articles: Article[];
+}
 
-export const JournalFeed: React.FC = () => {
+export const JournalFeed: React.FC<JournalFeedProps> = ({ articles }) => {
   const [active, setActive] = useState(ALL);
 
+  const filters = useMemo(() => [ALL, ...articleCategories(articles)], [articles]);
+  const countFor = (filter: string) =>
+    filter === ALL ? articles.length : articles.filter((a) => a.category === filter).length;
+
   const { featured, rest, total } = useMemo(() => {
-    const visible = active === ALL ? ARTICLES : ARTICLES.filter((a) => a.category === active);
+    const visible = active === ALL ? articles : articles.filter((a) => a.category === active);
     // The featured card only appears in the "All" view
     const featuredArticle = active === ALL ? visible.find((a) => a.featured) : undefined;
     return {
@@ -24,7 +29,7 @@ export const JournalFeed: React.FC = () => {
       rest: featuredArticle ? visible.filter((a) => a !== featuredArticle) : visible,
       total: visible.length,
     };
-  }, [active]);
+  }, [active, articles]);
 
   return (
     <section aria-labelledby="latest-articles" className="bg-white pb-20 pt-4">
@@ -39,7 +44,7 @@ export const JournalFeed: React.FC = () => {
           aria-label="Filter articles by category"
           className="-mx-4 mb-10 flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
         >
-          {FILTERS.map((filter) => {
+          {filters.map((filter) => {
             const selected = active === filter;
             return (
               <button

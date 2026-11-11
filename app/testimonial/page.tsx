@@ -1,18 +1,20 @@
 // app/testimonial/page.tsx
 import type { Metadata } from 'next';
 import { Star } from 'lucide-react';
-import { Testimonials } from '@/components/testimonial/Testimonials';
 import { ChooseCta } from '@/components/choose/ChooseCta';
-import { TESTIMONIALS } from '@/data/products';
+import { ReviewForm } from '@/components/testimonial/ReviewForm';
+import { Testimonials } from '@/components/testimonial/Testimonials';
+import { getTestimonials } from '@/server/content';
 
 export const metadata: Metadata = {
   title: 'Customer Reviews | LUMIÈRE',
   description: 'See what our customers say about LUMIÈRE skincare and cosmetics.',
 };
 
-export default function TestimonialPage() {
-  const count = TESTIMONIALS.length;
-  const average = count > 0 ? TESTIMONIALS.reduce((sum, t) => sum + t.rating, 0) / count : 0;
+export default async function TestimonialPage() {
+  const testimonials = await getTestimonials();
+  const count = testimonials.length;
+  const average = count > 0 ? testimonials.reduce((sum, t) => sum + t.rating, 0) / count : 0;
 
   return (
     <>
@@ -26,19 +28,13 @@ export default function TestimonialPage() {
           {count > 0 && (
             <div className="mt-8 inline-flex flex-col items-center rounded-3xl border border-rose-100 bg-white px-10 py-6 shadow-sm">
               <p className="font-serif text-5xl font-bold text-slate-900">{average.toFixed(1)}</p>
-              <div
-                className="mt-2 flex gap-1"
-                role="img"
-                aria-label={`Average rating ${average.toFixed(1)} out of 5`}
-              >
+              <div className="mt-2 flex gap-1" role="img" aria-label={`Average rating ${average.toFixed(1)} out of 5`}>
                 {Array.from({ length: 5 }, (_, i) => (
                   <Star
                     key={i}
                     size={20}
                     aria-hidden="true"
-                    className={
-                      i < Math.round(average) ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200'
-                    }
+                    className={i < Math.round(average) ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200'}
                   />
                 ))}
               </div>
@@ -51,6 +47,19 @@ export default function TestimonialPage() {
       </section>
 
       <Testimonials />
+
+      <section aria-labelledby="review-title" className="bg-slate-50 py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-8 max-w-xl text-center">
+            <h2 id="review-title" className="font-serif text-3xl font-bold text-slate-900">
+              Share your experience
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">Reviews are checked by our team before they appear.</p>
+          </div>
+          <ReviewForm />
+        </div>
+      </section>
+
       <ChooseCta />
     </>
   );

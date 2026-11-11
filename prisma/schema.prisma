@@ -101,9 +101,12 @@ model Article {
   image       String
   imageAlt    String
   featured    Boolean  @default(false)
+  isPublished Boolean  @default(true)
   /// JSON text: array of { type: "heading" | "paragraph" | "quote", text: string }
   body        String
   createdAt   DateTime @default(now())
+
+  @@index([isPublished, publishedAt])
 }
 
 model Testimonial {

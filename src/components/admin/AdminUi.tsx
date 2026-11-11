@@ -54,6 +54,8 @@ const BADGE_STYLES: Record<string, string> = {
   closed: 'bg-slate-200 text-slate-700',
   active: 'bg-emerald-100 text-emerald-800',
   hidden: 'bg-slate-200 text-slate-700',
+  published: 'bg-emerald-100 text-emerald-800',
+  draft: 'bg-slate-200 text-slate-700',
 };
 
 export const StatusBadge: React.FC<{ status: string }> = ({ status }) => (

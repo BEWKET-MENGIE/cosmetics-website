@@ -14,10 +14,11 @@ export default async function AdminDashboardPage() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [toProcess, today, revenue, lowStock, newMessages, subscribers, recent] = await Promise.all([
+  const [toProcess, today, revenue, lowStock, newMessages, subscribers, recent, pendingReviews] = await Promise.all([
     db.order.count({ where: { status: { in: ['pending', 'paid'] } } }),
     db.order.count({ where: { createdAt: { gte: startOfToday } } }),
     db.order.aggregate({ _sum: { total: true }, where: { paymentStatus: 'paid' } }),
+    
     db.product.findMany({
       where: { isActive: true, stock: { lte: LOW_STOCK_LIMIT } },
       orderBy: { stock: 'asc' },
@@ -31,6 +32,7 @@ export default async function AdminDashboardPage() {
       take: 6,
       select: { number: true, createdAt: true, fullName: true, total: true, status: true },
     }),
+    db.testimonial.count({ where: { isPublished: false } }),
   ]);
 
   return (
@@ -44,6 +46,7 @@ export default async function AdminDashboardPage() {
         <StatCard label="Low stock" value={String(lowStock.length)} hint={`${LOW_STOCK_LIMIT} or fewer left`} warn={lowStock.length > 0} />
         <StatCard label="New messages" value={String(newMessages)} warn={newMessages > 0} />
         <StatCard label="Subscribers" value={String(subscribers)} />
+        <StatCard label="Reviews to approve" value={String(pendingReviews)} warn={pendingReviews > 0} />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">

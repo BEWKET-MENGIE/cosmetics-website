@@ -9,6 +9,8 @@ const ITEMS = [
   { href: '/admin', label: 'Dashboard', exact: true },
   { href: '/admin/orders', label: 'Orders' },
   { href: '/admin/products', label: 'Products' },
+  { href: '/admin/articles', label: 'Articles' },
+  { href: '/admin/testimonials', label: 'Testimonials' },
   { href: '/admin/messages', label: 'Messages' },
   { href: '/admin/subscribers', label: 'Subscribers' },
 ];
