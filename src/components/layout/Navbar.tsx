@@ -48,6 +48,7 @@ export const Navbar: React.FC = () => {
   const { totalItems, toggleCart } = useCart();
   const { count: wishlistCount } = useWishlist();
 
+  const [mounted, setMounted] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -56,6 +57,10 @@ export const Navbar: React.FC = () => {
   const shopToggleRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close the dropdown and search panel whenever the page changes
   const [lastPathname, setLastPathname] = useState(pathname);
@@ -114,6 +119,9 @@ export const Navbar: React.FC = () => {
     router.push(`/shop?q=${encodeURIComponent(term)}`);
     setIsSearchOpen(false);
   };
+
+  const currentWishlistCount = mounted ? wishlistCount : 0;
+  const currentTotalItems = mounted ? totalItems : 0;
 
   return (
     // Sticky only on large screens: the stacked 3-row layout is too tall to pin on phones
@@ -227,14 +235,14 @@ export const Navbar: React.FC = () => {
 
             <Link
               href="/wishlist"
-              aria-label={`Wishlist, ${wishlistCount} ${wishlistCount === 1 ? 'item' : 'items'}`}
+              aria-label={`Wishlist${currentWishlistCount > 0 ? `, ${currentWishlistCount} ${currentWishlistCount === 1 ? 'item' : 'items'}` : ''}`}
               aria-current={isActive('/wishlist') ? 'page' : undefined}
               className={ICON_BUTTON}
             >
               <Heart size={18} aria-hidden="true" />
-              {wishlistCount > 0 && (
+              {currentWishlistCount > 0 && (
                 <span aria-hidden="true" className={COUNT_BADGE}>
-                  {formatCount(wishlistCount)}
+                  {formatCount(currentWishlistCount)}
                 </span>
               )}
             </Link>
@@ -243,13 +251,13 @@ export const Navbar: React.FC = () => {
               type="button"
               onClick={toggleCart}
               aria-haspopup="dialog"
-              aria-label={`Open shopping bag, ${totalItems} ${totalItems === 1 ? 'item' : 'items'}`}
+              aria-label={`Open shopping bag${currentTotalItems > 0 ? `, ${currentTotalItems} ${currentTotalItems === 1 ? 'item' : 'items'}` : ''}`}
               className={ICON_BUTTON}
             >
               <ShoppingBag size={18} aria-hidden="true" />
-              {totalItems > 0 && (
+              {currentTotalItems > 0 && (
                 <span aria-hidden="true" className={COUNT_BADGE}>
-                  {formatCount(totalItems)}
+                  {formatCount(currentTotalItems)}
                 </span>
               )}
             </button>
