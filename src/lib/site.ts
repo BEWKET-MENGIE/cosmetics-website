@@ -20,6 +20,11 @@ interface SiteConfig {
     phoneHref: string;
     address: string;
   };
+  /** Where customers send money for Telebirr and bank transfer orders */
+  payments: {
+    telebirr: { accountName: string; number: string };
+    cbe: { bank: string; accountName: string; accountNumber: string };
+  };
   socials: SocialLink[];
 }
 
@@ -34,6 +39,15 @@ export const SITE: SiteConfig = {
     phone: '+1 (800) 555-0199',
     phoneHref: 'tel:+18005550199',
     address: 'New York, NY 10001',
+  },
+  // TODO: replace with your real details. Customers send money to these.
+  payments: {
+    telebirr: { accountName: 'LUMIÈRE Cosmetics', number: '0911 000 000' },
+    cbe: {
+      bank: 'Commercial Bank of Ethiopia',
+      accountName: 'LUMIÈRE Cosmetics',
+      accountNumber: '1000 0000 0000 0',
+    },
   },
   // TODO: replace with your real profile addresses
   socials: [
