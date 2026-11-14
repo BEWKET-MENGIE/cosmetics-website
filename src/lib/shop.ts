@@ -44,6 +44,6 @@ export function filterAndSortProducts(
     case 'rating':
       return result.sort((a, b) => b.rating - a.rating);
     default:
-      return result; // "featured" keeps the original order
+      return result; 
   }
 }
